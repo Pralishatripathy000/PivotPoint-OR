@@ -1,3 +1,5 @@
+from src.solvers.cutting_plane import solve_cutting_plane
+
 from src.solvers.linear_program import solve_linear_program
 
 from src.solvers.simplex import (
@@ -165,8 +167,14 @@ def read_problem(include_signs):
     }
 
 
-def display_solution(result):
-    print("\nOptimal Solution")
+def display_solution(result, integer=False):
+    heading = (
+        "Optimal Integer Solution"
+        if integer
+        else "Optimal Solution"
+    )
+
+    print(f"\n{heading}")
 
     for index, value in enumerate(result["variables"]):
         print(
@@ -186,9 +194,15 @@ def display_solution(result):
         f"{format_value(result['objective'])}"
     )
 
-    print(
-        f"Pivot operations = {result['pivot_count']}"
-    )
+    if "pivot_count" in result:
+        print(
+            f"Pivot operations = {result['pivot_count']}"
+        )
+
+    if "cut_count" in result:
+        print(
+            f"Gomory cuts added = {result['cut_count']}"
+        )
 
 
 def run_standard_simplex():
@@ -260,6 +274,99 @@ def run_general_linear_program():
     display_solution(result)
 
 
+def display_cutting_process(result, problem):
+    relaxation_names = get_variable_names(
+        problem["variable_count"],
+        problem["constraint_count"]
+    )
+
+    display_iterations(
+        result["relaxation"]["iterations"],
+        relaxation_names,
+        "LP Relaxation"
+    )
+
+    relaxed_variables = result["relaxation"]["variables"]
+
+    print("\nLP Relaxation Solution")
+
+    for index, value in enumerate(relaxed_variables):
+        print(
+            f"x{index + 1} = {format_value(value)}"
+        )
+
+    print(
+        "Relaxed Maximum Z = "
+        f"{format_value(result['relaxation']['objective'])}"
+    )
+
+    if not result["cuts"]:
+        print(
+            "\nThe LP relaxation is already integer."
+        )
+
+    for cut in result["cuts"]:
+        cut_number = cut["cut_number"]
+        column_count = len(cut["tableau"][0]) - 1
+
+        names = result["variable_names"][
+            :column_count
+        ]
+
+        print(f"\nGomory Cut {cut_number}")
+        print(
+            "Generated from fractional tableau row "
+            f"{cut['source_row'] + 1}."
+        )
+
+        print(
+            format_named_tableau(
+                cut["tableau"],
+                cut["basis"],
+                names
+            )
+        )
+
+        relevant_iterations = [
+            iteration
+            for iteration in result["dual_iterations"]
+            if iteration["cut_number"] == cut_number
+        ]
+
+        if relevant_iterations:
+            display_iterations(
+                relevant_iterations,
+                names,
+                f"Dual Simplex After Cut {cut_number}"
+            )
+
+
+def run_cutting_plane():
+    print("\nGomory Cutting-Plane Algorithm")
+    print(
+        "Pure integer maximization with <= constraints "
+        "and non-negative RHS values\n"
+    )
+
+    problem = read_problem(include_signs=False)
+
+    result = solve_cutting_plane(
+        problem["objective"],
+        problem["constraints"],
+        problem["rhs"]
+    )
+
+    display_cutting_process(
+        result,
+        problem
+    )
+
+    display_solution(
+        result,
+        integer=True
+    )
+
+
 def main():
     print("\nPivotPoint-OR")
     print(
@@ -269,6 +376,7 @@ def main():
 
     print("\n1. Standard Simplex Method")
     print("2. General Two-Phase Linear Program")
+    print("3. Gomory Cutting-Plane Algorithm")
 
     choice = input("\nChoose a method: ").strip()
 
@@ -276,9 +384,11 @@ def main():
         run_standard_simplex()
     elif choice == "2":
         run_general_linear_program()
+    elif choice == "3":
+        run_cutting_plane()
     else:
         raise ValueError(
-            "Choose either 1 or 2."
+            "Choose 1, 2 or 3."
         )
 
 
