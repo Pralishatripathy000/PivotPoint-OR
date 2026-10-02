@@ -1,9 +1,9 @@
+from src.solvers.linear_program import solve_linear_program
+
 from src.solvers.simplex import (
     SimplexError,
     solve_simplex
 )
-
-from src.solvers.two_phase import solve_two_phase
 
 from src.utils.tableau import (
     format_named_tableau,
@@ -32,6 +32,19 @@ def read_values(prompt, expected_count):
         )
 
     return values
+
+
+def read_direction():
+    direction = input(
+        "Optimization direction (max/min): "
+    ).strip().lower()
+
+    if direction not in {"max", "min"}:
+        raise ValueError(
+            "Direction must be either max or min."
+        )
+
+    return direction
 
 
 def create_phase_one_names(variable_count, signs):
@@ -152,6 +165,32 @@ def read_problem(include_signs):
     }
 
 
+def display_solution(result):
+    print("\nOptimal Solution")
+
+    for index, value in enumerate(result["variables"]):
+        print(
+            f"x{index + 1} = {format_value(value)}"
+        )
+
+    direction = result.get("direction", "max")
+
+    objective_label = (
+        "Maximum Z"
+        if direction == "max"
+        else "Minimum Z"
+    )
+
+    print(
+        f"{objective_label} = "
+        f"{format_value(result['objective'])}"
+    )
+
+    print(
+        f"Pivot operations = {result['pivot_count']}"
+    )
+
+
 def run_standard_simplex():
     print("\nStandard Simplex Method")
     print(
@@ -167,6 +206,8 @@ def run_standard_simplex():
         problem["rhs"]
     )
 
+    result["direction"] = "max"
+
     variable_names = get_variable_names(
         problem["variable_count"],
         problem["constraint_count"]
@@ -181,19 +222,22 @@ def run_standard_simplex():
     display_solution(result)
 
 
-def run_two_phase():
-    print("\nTwo-Phase Simplex Method")
+def run_general_linear_program():
+    print("\nGeneral Linear Program")
     print(
-        "Maximization with <=, >= and = constraints\n"
+        "Maximization or minimization with "
+        "<=, >= and = constraints\n"
     )
 
+    direction = read_direction()
     problem = read_problem(include_signs=True)
 
-    result = solve_two_phase(
+    result = solve_linear_program(
         problem["objective"],
         problem["constraints"],
         problem["signs"],
-        problem["rhs"]
+        problem["rhs"],
+        direction
     )
 
     phase_one_names = create_phase_one_names(
@@ -216,36 +260,22 @@ def run_two_phase():
     display_solution(result)
 
 
-def display_solution(result):
-    print("\nOptimal Solution")
-
-    for index, value in enumerate(result["variables"]):
-        print(
-            f"x{index + 1} = {format_value(value)}"
-        )
-
-    print(
-        "Maximum Z = "
-        f"{format_value(result['objective'])}"
-    )
-
-    print(
-        f"Pivot operations = {result['pivot_count']}"
-    )
-
-
 def main():
     print("\nPivotPoint-OR")
-    print("Because doing every pivot by hand builds character.")
+    print(
+        "Because doing every pivot by hand "
+        "builds character."
+    )
+
     print("\n1. Standard Simplex Method")
-    print("2. Two-Phase Simplex Method")
+    print("2. General Two-Phase Linear Program")
 
     choice = input("\nChoose a method: ").strip()
 
     if choice == "1":
         run_standard_simplex()
     elif choice == "2":
-        run_two_phase()
+        run_general_linear_program()
     else:
         raise ValueError(
             "Choose either 1 or 2."
