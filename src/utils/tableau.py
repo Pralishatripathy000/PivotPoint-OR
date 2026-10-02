@@ -9,33 +9,23 @@ def format_value(value):
 
 
 def get_variable_names(variable_count, constraint_count):
-    decision_variables = [
-        f"x{index + 1}"
-        for index in range(variable_count)
-    ]
-
-    slack_variables = [
-        f"s{index + 1}"
-        for index in range(constraint_count)
-    ]
-
-    return decision_variables + slack_variables
-
-
-def format_tableau(
-    tableau,
-    basis,
-    variable_count,
-    constraint_count
-):
-    variable_names = get_variable_names(
-        variable_count,
-        constraint_count
+    return (
+        [
+            f"x{index + 1}"
+            for index in range(variable_count)
+        ]
+        + [
+            f"s{index + 1}"
+            for index in range(constraint_count)
+        ]
     )
 
-    headers = ["Basis", *variable_names, "RHS"]
 
+def format_named_tableau(tableau, basis, variable_names):
+    headers = ["Basis", *variable_names, "RHS"]
     rows = []
+
+    constraint_count = len(tableau) - 1
 
     for row_index, row in enumerate(tableau):
         if row_index < constraint_count:
@@ -79,3 +69,21 @@ def format_tableau(
         separator,
         *body
     ])
+
+
+def format_tableau(
+    tableau,
+    basis,
+    variable_count,
+    constraint_count
+):
+    variable_names = get_variable_names(
+        variable_count,
+        constraint_count
+    )
+
+    return format_named_tableau(
+        tableau,
+        basis,
+        variable_names
+    )
