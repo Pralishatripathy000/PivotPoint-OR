@@ -1,7 +1,10 @@
 import unittest
 from fractions import Fraction
 
-from src.solvers.simplex import UnboundedProblem, solve_simplex
+from src.solvers.simplex import (
+    UnboundedProblem,
+    solve_simplex
+)
 
 
 class TestSimplex(unittest.TestCase):
@@ -21,7 +24,16 @@ class TestSimplex(unittest.TestCase):
             result["variables"],
             [Fraction(2), Fraction(6)]
         )
-        self.assertEqual(result["objective"], Fraction(36))
+
+        self.assertEqual(
+            result["objective"],
+            Fraction(36)
+        )
+
+        self.assertEqual(
+            result["pivot_count"],
+            2
+        )
 
     def test_fractional_solution(self):
         result = solve_simplex(
@@ -35,9 +47,16 @@ class TestSimplex(unittest.TestCase):
 
         self.assertEqual(
             result["variables"],
-            [Fraction(4, 3), Fraction(4, 3)]
+            [
+                Fraction(4, 3),
+                Fraction(4, 3)
+            ]
         )
-        self.assertEqual(result["objective"], Fraction(8, 3))
+
+        self.assertEqual(
+            result["objective"],
+            Fraction(8, 3)
+        )
 
     def test_unbounded_problem(self):
         with self.assertRaises(UnboundedProblem):
@@ -45,6 +64,14 @@ class TestSimplex(unittest.TestCase):
                 [1, 1],
                 [[1, -1]],
                 [1]
+            )
+
+    def test_negative_rhs_rejected(self):
+        with self.assertRaises(ValueError):
+            solve_simplex(
+                [2, 1],
+                [[1, 1]],
+                [-5]
             )
 
 
